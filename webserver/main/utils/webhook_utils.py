@@ -2,6 +2,8 @@ import datetime
 import gc
 import json
 import timeit
+import re
+from dateutil import parser
 from functools import wraps
 from main.utils.logger import get_logger
 
@@ -78,3 +80,15 @@ def post_on_bg_or_bpp(url, payload, headers={}):
 def lookup_call(url, payload, headers=None):
     response = requests.post(url, json=payload, headers=headers)
     return json.loads(response.text), response.status_code
+
+def calculate_duration_ms(iso8601dur: str):
+    match = re.match(r'^PT(\d{0,2})([H|S])$', iso8601dur)
+    if match:
+        # multiply the value by 3600000 if H else 1000  
+        return int(match.group(1)) * ((60 * 60 * 1000) if match.group(2) == 'H' else 1000)
+    else:
+        raise Exception('Duration Error: either empty or not correct format')
+
+def is_on_issue_deadine(duration: float, start_datetime_str: str):
+    time_elapsed = datetime.now().timestamp() * 1000 - parser.isoparse(start_datetime_str).timestamp() * 1000
+    return duration - time_elapsed < 0
